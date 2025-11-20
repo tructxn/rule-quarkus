@@ -1,0 +1,17 @@
+# Bazel configuration for rules_quarkus
+
+# Java configuration
+build --java_language_version=21
+build --tool_java_language_version=21
+build --java_runtime_version=remotejdk_21
+build --tool_java_runtime_version=remotejdk_21
+
+# Performance
+build --experimental_reuse_sandbox_directories
+
+# Output
+build --color=yes
+build --show_timestamps
+
+# Error handling
+build --verbose_failures

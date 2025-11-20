@@ -1,0 +1,49 @@
+"""Bazel rules for Quarkus applications"""
+
+module(
+    name = "rules_quarkus",
+    version = "0.1.0",
+    compatibility_level = 1,
+)
+
+# Bazel dependencies
+bazel_dep(name = "rules_java", version = "8.6.2")
+bazel_dep(name = "rules_jvm_external", version = "6.5")
+
+# Maven dependencies for Quarkus
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+
+# Quarkus BOM and core dependencies
+QUARKUS_VERSION = "3.17.4"
+
+maven.install(
+    name = "maven",
+    artifacts = [
+        # Core Quarkus runtime
+        "io.quarkus:quarkus-core:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-arc:%s" % QUARKUS_VERSION,
+
+        # REST support
+        "io.quarkus:quarkus-rest:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-rest-jackson:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-vertx-http:%s" % QUARKUS_VERSION,
+
+        # Vert.x core (for direct HTTP server)
+        "io.vertx:vertx-core:4.5.11",
+        "io.vertx:vertx-web:4.5.11",
+
+        # Jakarta/JBoss dependencies
+        "jakarta.enterprise:jakarta.enterprise.cdi-api:4.1.0",
+        "jakarta.ws.rs:jakarta.ws.rs-api:4.0.0",
+        "org.jboss.logging:jboss-logging:3.6.1.Final",
+        "org.jboss.logmanager:jboss-logmanager:3.0.6.Final",
+    ],
+    fail_if_repin_required = False,
+    fetch_sources = True,
+    generate_compat_repositories = True,
+    repositories = [
+        "https://repo1.maven.org/maven2",
+    ],
+)
+
+use_repo(maven, "maven")
