@@ -21,7 +21,8 @@ public class RouteDiscovery {
     
     public static DiscoveryResult discover(IndexView index) {
         List<RouteInfo> routes = discoverRoutes(index);
-        return new DiscoveryResult(routes, index);
+        List<BeanInfo> beans = BeanDiscovery.discover(index);
+        return new DiscoveryResult(routes, beans, index);
     }
     
     private static List<RouteInfo> discoverRoutes(IndexView index) {

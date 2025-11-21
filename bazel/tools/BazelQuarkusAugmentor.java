@@ -39,6 +39,8 @@ public class BazelQuarkusAugmentor {
         
         DiscoveryResult discovery = RouteDiscovery.discover(index);
         System.out.println("Discovered " + discovery.getRoutes().size() + " routes");
+        System.out.println("Discovered " + discovery.getBeans().size() + " CDI beans");
+        System.out.println();
         
         List<GeneratedClass> generated = new ArrayList<>();
         generated.add(MainClassGenerator.generate(discovery));

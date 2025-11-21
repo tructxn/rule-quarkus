@@ -29,6 +29,8 @@ java_binary(
         "BazelQuarkusAugmentor.java",
         "augmentor/AugmentationContext.java",
         "augmentor/ArgumentParser.java",
+        "discovery/BeanDiscovery.java",
+        "discovery/BeanInfo.java",
         "discovery/DiscoveryResult.java",
         "discovery/RouteDiscovery.java",
         "discovery/RouteInfo.java",
@@ -47,6 +49,32 @@ java_binary(
         # Gizmo for bytecode generation
         "@maven//:io_quarkus_gizmo_gizmo",
 
+        # Logging
+        "@maven//:org_jboss_logging_jboss_logging",
+    ],
+)
+
+# Quarkus augmentor runner (uses Quarkus's own augmentation API)
+# Separate target to avoid circular dependencies
+java_binary(
+    name = "quarkus_augmentor_runner",
+    srcs = [
+        "processor/QuarkusAugmentorRunner.java",
+        "processor/ApplicationModelBuilder.java",
+    ],
+    main_class = "io.quarkus.bazel.processor.QuarkusAugmentorRunner",
+    visibility = ["//visibility:public"],
+    deps = [
+        # Quarkus bootstrap
+        "@maven//:io_quarkus_quarkus_bootstrap_core",
+        "@maven//:io_quarkus_quarkus_bootstrap_app_model",
+        
+        # Quarkus core
+        "@maven//:io_quarkus_quarkus_core",
+        
+        # Jandex
+        "@maven//:io_smallrye_jandex",
+        
         # Logging
         "@maven//:org_jboss_logging_jboss_logging",
     ],
