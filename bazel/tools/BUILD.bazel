@@ -25,7 +25,19 @@ java_binary(
 # Wraps io.quarkus.deployment.QuarkusAugmentor for Bazel builds
 java_binary(
     name = "quarkus_augmentor",
-    srcs = ["BazelQuarkusAugmentor.java"],
+    srcs = [
+        "BazelQuarkusAugmentor.java",
+        "augmentor/AugmentationContext.java",
+        "augmentor/ArgumentParser.java",
+        "discovery/DiscoveryResult.java",
+        "discovery/RouteDiscovery.java",
+        "discovery/RouteInfo.java",
+        "generator/GeneratedClass.java",
+        "generator/MainClassGenerator.java",
+        "indexer/IndexBuilder.java",
+        "packager/JarPackager.java",
+        "packager/ManifestBuilder.java",
+    ],
     main_class = "io.quarkus.bazel.tools.BazelQuarkusAugmentor",
     visibility = ["//visibility:public"],
     deps = [
@@ -35,27 +47,7 @@ java_binary(
         # Gizmo for bytecode generation
         "@maven//:io_quarkus_gizmo_gizmo",
 
-        # ARC processor for CDI bean generation
-        "@maven//:io_quarkus_arc_arc_processor",
-        "@maven//:io_quarkus_arc_arc",
-        "@maven//:io_vertx_vertx_core",
-
-        # Required for ARC processor
-        "@maven//:jakarta_enterprise_jakarta_enterprise_cdi_api",
+        # Logging
         "@maven//:org_jboss_logging_jboss_logging",
-
-        # Quarkus bootstrap (for ApplicationModel, classloaders, etc.)
-        "@maven//:io_quarkus_quarkus_bootstrap_core",
-        "@maven//:io_quarkus_quarkus_bootstrap_app_model",
-        "@maven//:io_quarkus_quarkus_core",
-
-        # Quarkus deployment modules (for actual augmentation)
-        "@maven//:io_quarkus_quarkus_core_deployment",
-        "@maven//:io_quarkus_quarkus_arc_deployment",
-        "@maven//:io_quarkus_quarkus_vertx_http_deployment",
-        "@maven//:io_quarkus_quarkus_reactive_routes_deployment",
-
-        # ASM for bytecode manipulation
-        "@maven//:org_ow2_asm_asm",
     ],
 )

@@ -25,13 +25,21 @@ maven.install(
         "io.quarkus.arc:arc:%s" % QUARKUS_VERSION,
         "io.quarkus.arc:arc-processor:%s" % QUARKUS_VERSION,
 
+        # Quarkus bootstrap (for build tools)
+        "io.quarkus:quarkus-bootstrap-core:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-bootstrap-app-model:%s" % QUARKUS_VERSION,
+
+        # Quarkus deployment modules (for augmentation)
+        "io.quarkus:quarkus-core-deployment:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-arc-deployment:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-vertx-http-deployment:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-reactive-routes-deployment:%s" % QUARKUS_VERSION,
+
+        # Gizmo for bytecode generation
+        "io.quarkus.gizmo:gizmo:1.8.0",
+
         # Jandex for bean indexing
         "io.smallrye:jandex:3.2.3",
-
-        # REST support
-        "io.quarkus:quarkus-rest:%s" % QUARKUS_VERSION,
-        "io.quarkus:quarkus-rest-jackson:%s" % QUARKUS_VERSION,
-        "io.quarkus:quarkus-vertx-http:%s" % QUARKUS_VERSION,
 
         # Vert.x core (for direct HTTP server)
         "io.vertx:vertx-core:4.5.11",
@@ -40,9 +48,14 @@ maven.install(
         # Jakarta/JBoss dependencies
         "jakarta.enterprise:jakarta.enterprise.cdi-api:4.1.0",
         "jakarta.inject:jakarta.inject-api:2.0.1",
+        "jakarta.annotation:jakarta.annotation-api:3.0.0",
         "jakarta.ws.rs:jakarta.ws.rs-api:4.0.0",
         "org.jboss.logging:jboss-logging:3.6.1.Final",
         "org.jboss.logmanager:jboss-logmanager:3.0.6.Final",
+
+        # ASM for bytecode manipulation
+        "org.ow2.asm:asm:9.7",
+        "org.ow2.asm:asm-commons:9.7",
     ],
     fail_if_repin_required = False,
     fetch_sources = True,
