@@ -1,0 +1,11 @@
+"""
+Java toolchain configuration for Quarkus
+
+Note: We use Bazel's built-in remotejdk_21 toolchain configured in .bazelrc
+This BUILD file is kept for potential custom toolchain configuration in the future.
+"""
+
+# Empty for now - we use Bazel's built-in Java 21 toolchain
+# Configured via .bazelrc:
+#   build --java_language_version=21
+#   build --java_runtime_version=remotejdk_21

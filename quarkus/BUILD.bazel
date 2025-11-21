@@ -1,6 +1,0 @@
-# Quarkus rules package
-
-exports_files([
-    "defs.bzl",
-    "quarkus_app.bzl",
-])
