@@ -1,0 +1,61 @@
+"""
+Quarkus Build Tools
+
+These are helper tools used by Quarkus Bazel rules for:
+- Jandex indexing
+- Application augmentation
+- Extension metadata generation
+"""
+
+load("@rules_java//java:defs.bzl", "java_binary")
+
+# Jandex indexer tool
+# TODO: Implement actual Jandex wrapper
+java_binary(
+    name = "jandex",
+    srcs = ["JandexIndexer.java"],
+    main_class = "io.quarkus.bazel.tools.JandexIndexer",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@maven//:io_smallrye_jandex",
+    ],
+)
+
+# Quarkus augmentor tool
+# Wraps io.quarkus.deployment.QuarkusAugmentor for Bazel builds
+java_binary(
+    name = "quarkus_augmentor",
+    srcs = ["BazelQuarkusAugmentor.java"],
+    main_class = "io.quarkus.bazel.tools.BazelQuarkusAugmentor",
+    visibility = ["//visibility:public"],
+    deps = [
+        # Jandex for bytecode indexing
+        "@maven//:io_smallrye_jandex",
+
+        # Gizmo for bytecode generation
+        "@maven//:io_quarkus_gizmo_gizmo",
+
+        # ARC processor for CDI bean generation
+        "@maven//:io_quarkus_arc_arc_processor",
+        "@maven//:io_quarkus_arc_arc",
+        "@maven//:io_vertx_vertx_core",
+
+        # Required for ARC processor
+        "@maven//:jakarta_enterprise_jakarta_enterprise_cdi_api",
+        "@maven//:org_jboss_logging_jboss_logging",
+
+        # Quarkus bootstrap (for ApplicationModel, classloaders, etc.)
+        "@maven//:io_quarkus_quarkus_bootstrap_core",
+        "@maven//:io_quarkus_quarkus_bootstrap_app_model",
+        "@maven//:io_quarkus_quarkus_core",
+
+        # Quarkus deployment modules (for actual augmentation)
+        "@maven//:io_quarkus_quarkus_core_deployment",
+        "@maven//:io_quarkus_quarkus_arc_deployment",
+        "@maven//:io_quarkus_quarkus_vertx_http_deployment",
+        "@maven//:io_quarkus_quarkus_reactive_routes_deployment",
+
+        # ASM for bytecode manipulation
+        "@maven//:org_ow2_asm_asm",
+    ],
+)
