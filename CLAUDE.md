@@ -124,20 +124,41 @@ rules_quarkus/
    - `RUNTIME_CP` for runtime dependencies
    - `DEPLOYMENT_CP` for deployment modules
    - `RUNTIME_EXTENSION_ARTIFACT` for Quarkus extensions
+   - **Important:** Flags must be merged (OR'd) for overlapping dependencies
 
-2. **Create QuarkusBootstrap** with flat classpath to avoid classloader issues
+2. **Create QuarkusBootstrap** with flat classpath to avoid classloader issues:
+   - `setIsolateDeployment(false)` - Don't isolate deployment classes
+   - `setFlatClassPath(true)` - Avoid ClassCastException with CuratedApplication
 
 3. **Run Augmentation** via `AugmentActionImpl`:
+   - Set TCCL (Thread Context ClassLoader) to augment classloader for ASM
    - CDI bean discovery and proxy generation
    - REST endpoint registration
    - Bytecode optimization
 
 4. **Output** to `quarkus-app/` directory:
    - `quarkus-run.jar` - launcher
-   - `lib/boot/` - bootstrap runner
+   - `lib/boot/` - bootstrap runner (`io.quarkus.quarkus-bootstrap-runner-VERSION.jar`)
    - `lib/main/` - runtime dependencies
    - `app/` - application classes
    - `quarkus/generated-bytecode.jar` - generated code
+
+### Key Technical Fixes Applied
+
+1. **ApplicationModel Flag Merging** (`ApplicationModelFactory.java`):
+   - Runtime deps with RUNTIME_CP
+   - If also in deployment, OR with DEPLOYMENT_CP
+   - Mark extensions with RUNTIME_EXTENSION_ARTIFACT
+
+2. **ClassLoader Handling** (`BootstrapAugmentor.java`):
+   - Flat classpath to avoid "Cannot cast CuratedApplication to CuratedApplication"
+   - TCCL set for ASM class loading during augmentation
+
+3. **Bootstrap Runner** (`OutputHandler.java`):
+   - Copy with correct naming format for Quarkus to find it
+
+4. **Circular Dependencies** (`MODULE.bazel`):
+   - Use `maven.artifact()` with exclusions for org.eclipse.sisu, maven-plugin-api
 
 ### Creating a New Application
 
@@ -252,3 +273,22 @@ The `OutputHandler.java` should copy `quarkus-bootstrap-runner.jar` to `lib/boot
 ### v2-bootstrap
 - All features working
 - Some Quarkus extensions may need additional exclusions for Maven circular dependencies
+
+---
+
+## Key Source Files (v2-bootstrap)
+
+| File | Purpose |
+|------|---------|
+| `tools/.../BootstrapAugmentor.java` | Main entry point, QuarkusBootstrap configuration |
+| `tools/.../ApplicationModelFactory.java` | Build ApplicationModel with correct flags |
+| `tools/.../ExtensionDetector.java` | Detect Quarkus extensions via META-INF |
+| `tools/.../OutputHandler.java` | Handle output, copy bootstrap runner |
+| `rules/quarkus.bzl` | Main `quarkus_application` macro |
+| `rules/quarkus_bootstrap.bzl` | Bootstrap augmentation rule |
+
+---
+
+## Extension Detection
+
+Quarkus extensions are identified by `META-INF/quarkus-extension.properties` in the JAR. The `ExtensionDetector` scans runtime JARs to find extensions and marks them with `RUNTIME_EXTENSION_ARTIFACT` flag.

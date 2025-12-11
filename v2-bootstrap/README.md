@@ -259,10 +259,42 @@ maven.artifact(
 
 ## Implementation Status
 
-- [ ] Core tools implementation
-- [ ] ApplicationModel building
-- [ ] Extension detection
-- [ ] Bazel rules
-- [ ] Example application
-- [ ] CDI working
-- [ ] REST endpoints working
+- [x] Core tools implementation
+- [x] ApplicationModel building (with proper flag merging for overlapping deps)
+- [x] Extension detection (via META-INF/quarkus-extension.properties)
+- [x] Bazel rules (quarkus_application macro)
+- [x] Example application (hello-world with REST)
+- [x] CDI working (full ArC support)
+- [x] REST endpoints working (quarkus-rest + vertx-http)
+- [x] HTTP server (Vert.x + Netty)
+- [x] Bootstrap runner (lib/boot/ with correct naming)
+
+## Troubleshooting
+
+### ClassCastException: Cannot cast CuratedApplication to CuratedApplication
+
+This happens when deployment and runtime classloaders conflict. Solution: Use flat classpath:
+
+```java
+QuarkusBootstrap.builder()
+    .setIsolateDeployment(false)
+    .setFlatClassPath(true)
+    .build();
+```
+
+### Circular dependency errors with Maven/Sisu
+
+Some Quarkus deployment modules have circular dependencies with Maven/Sisu. Use exclusions:
+
+```python
+maven.artifact(
+    artifact = "quarkus-rest-deployment",
+    exclusions = ["org.eclipse.sisu:org.eclipse.sisu.plexus"],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+```
+
+### Empty lib/boot/ directory
+
+The bootstrap runner JAR must be named correctly: `io.quarkus.quarkus-bootstrap-runner-VERSION.jar`
