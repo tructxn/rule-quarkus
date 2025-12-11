@@ -1,4 +1,4 @@
-load("//bazel/rules:quarkus.bzl", "quarkus_application")
+load("//v1-custom/rules:quarkus.bzl", "quarkus_application")
 
 quarkus_application(
     name = "hello-world",

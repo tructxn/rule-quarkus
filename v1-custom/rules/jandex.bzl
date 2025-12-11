@@ -47,7 +47,7 @@ jandex_index = rule(
             doc = "Java libraries to index",
         ),
         "_jandex_tool": attr.label(
-            default = Label("//bazel/tools:jandex"),
+            default = Label("//v1-custom/tools:jandex"),
             executable = True,
             cfg = "exec",
         ),
@@ -99,7 +99,7 @@ jandex_merge = rule(
             doc = "Jandex indexes to merge",
         ),
         "_jandex_tool": attr.label(
-            default = Label("//bazel/tools:jandex"),
+            default = Label("//v1-custom/tools:jandex"),
             executable = True,
             cfg = "exec",
         ),

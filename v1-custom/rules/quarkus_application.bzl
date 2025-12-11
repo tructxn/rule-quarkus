@@ -10,7 +10,7 @@ This matches Quarkus's actual build model where augmentation happens after compi
 """
 
 load("@rules_java//java:defs.bzl", "java_binary", "java_library", "java_test")
-load("//bazel/rules:quarkus_augment.bzl", _quarkus_augment = "quarkus_augment")
+load("//v1-custom/rules:quarkus_augment.bzl", _quarkus_augment = "quarkus_augment")
 
 def quarkus_application(
         name,

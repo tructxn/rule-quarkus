@@ -1,0 +1,10 @@
+"""
+Quarkus Bazel Rules (Approach 2)
+
+Public rules for building Quarkus applications.
+"""
+
+exports_files([
+    "quarkus.bzl",
+    "quarkus_bootstrap.bzl",
+])

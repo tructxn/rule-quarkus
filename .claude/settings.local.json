@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bazel build:*)",
+      "Bash(unzip:*)",
+      "Bash(cat:*)",
+      "Bash(bazel query:*)"
+    ]
+  }
+}

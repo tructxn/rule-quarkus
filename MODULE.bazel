@@ -1,8 +1,14 @@
-"""Bazel rules for Quarkus applications"""
+"""
+Bazel rules for Quarkus applications
+
+This module supports two approaches:
+- v1-custom: Custom augmentation (lightweight, educational)
+- v2-bootstrap: QuarkusBootstrap API (full features, production-ready)
+"""
 
 module(
     name = "rules_quarkus",
-    version = "0.1.0",
+    version = "0.2.0",
     compatibility_level = 1,
 )
 
@@ -13,47 +19,76 @@ bazel_dep(name = "rules_jvm_external", version = "6.5")
 # Maven dependencies for Quarkus
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 
-# Quarkus BOM and core dependencies
 QUARKUS_VERSION = "3.17.4"
 
 maven.install(
     name = "maven",
     artifacts = [
-        # Core Quarkus runtime
+        # ===========================================
+        # Quarkus Core
+        # ===========================================
         "io.quarkus:quarkus-core:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-core-deployment:%s" % QUARKUS_VERSION,
+
+        # ===========================================
+        # Quarkus ArC (CDI)
+        # ===========================================
         "io.quarkus:quarkus-arc:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-arc-deployment:%s" % QUARKUS_VERSION,
         "io.quarkus.arc:arc:%s" % QUARKUS_VERSION,
         "io.quarkus.arc:arc-processor:%s" % QUARKUS_VERSION,
 
-        # Quarkus bootstrap (for build tools)
+        # ===========================================
+        # Quarkus Bootstrap (for v2-bootstrap approach)
+        # ===========================================
         "io.quarkus:quarkus-bootstrap-core:%s" % QUARKUS_VERSION,
         "io.quarkus:quarkus-bootstrap-app-model:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-bootstrap-runner:%s" % QUARKUS_VERSION,
 
-        # Quarkus deployment modules (for augmentation)
-        "io.quarkus:quarkus-core-deployment:%s" % QUARKUS_VERSION,
-        "io.quarkus:quarkus-arc-deployment:%s" % QUARKUS_VERSION,
-        "io.quarkus:quarkus-vertx-http-deployment:%s" % QUARKUS_VERSION,
-        "io.quarkus:quarkus-reactive-routes-deployment:%s" % QUARKUS_VERSION,
+        # ===========================================
+        # Quarkus Builder
+        # ===========================================
+        "io.quarkus:quarkus-builder:%s" % QUARKUS_VERSION,
 
+        # ===========================================
+        # Quarkus REST (formerly RESTEasy Reactive)
+        # ===========================================
+        "io.quarkus:quarkus-rest:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-vertx-http:%s" % QUARKUS_VERSION,
+
+        # ===========================================
         # Gizmo for bytecode generation
+        # ===========================================
         "io.quarkus.gizmo:gizmo:1.8.0",
 
-        # Jandex for bean indexing
+        # ===========================================
+        # Jandex for bytecode indexing
+        # ===========================================
         "io.smallrye:jandex:3.2.3",
 
-        # Vert.x core (for direct HTTP server)
+        # ===========================================
+        # Vert.x
+        # ===========================================
         "io.vertx:vertx-core:4.5.11",
         "io.vertx:vertx-web:4.5.11",
 
-        # Jakarta/JBoss dependencies
+        # ===========================================
+        # Jakarta APIs
+        # ===========================================
         "jakarta.enterprise:jakarta.enterprise.cdi-api:4.1.0",
         "jakarta.inject:jakarta.inject-api:2.0.1",
         "jakarta.annotation:jakarta.annotation-api:3.0.0",
         "jakarta.ws.rs:jakarta.ws.rs-api:4.0.0",
+
+        # ===========================================
+        # JBoss Logging
+        # ===========================================
         "org.jboss.logging:jboss-logging:3.6.1.Final",
         "org.jboss.logmanager:jboss-logmanager:3.0.6.Final",
 
+        # ===========================================
         # ASM for bytecode manipulation
+        # ===========================================
         "org.ow2.asm:asm:9.7",
         "org.ow2.asm:asm-commons:9.7",
     ],
@@ -63,6 +98,32 @@ maven.install(
     repositories = [
         "https://repo1.maven.org/maven2",
     ],
+)
+
+# Add deployment artifacts with exclusions for circular dependencies
+maven.artifact(
+    artifact = "quarkus-rest-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+
+maven.artifact(
+    artifact = "quarkus-vertx-http-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+        # Don't exclude quarkus-devtools-common as it contains required classes
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
 )
 
 use_repo(maven, "maven")

@@ -99,7 +99,7 @@ quarkus_augment = rule(
             doc = "Quarkus application name",
         ),
         "_augmentor": attr.label(
-            default = Label("//bazel/tools:quarkus_augmentor"),
+            default = Label("//v1-custom/tools:quarkus_augmentor"),
             executable = True,
             cfg = "exec",
             doc = "Quarkus augmentation tool",
