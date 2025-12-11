@@ -1,41 +1,34 @@
 """
-Quarkus Bazel Rules
+Quarkus Bazel Rules (v1-custom)
 
-Main entry point for Quarkus Bazel rules. Import this file to use
-Quarkus rules in your BUILD files.
+Approach 1: Custom augmentation implementation.
 
 Example:
-    load("//bazel/rules:quarkus.bzl", "quarkus_application", "quarkus_extension")
-
-    quarkus_extension(
-        name = "my-extension",
-        runtime_srcs = glob(["runtime/src/main/java/**/*.java"]),
-        deployment_srcs = glob(["deployment/src/main/java/**/*.java"]),
-    )
+    load("//v1-custom/rules:quarkus.bzl", "quarkus_application")
 
     quarkus_application(
         name = "my-app",
         srcs = glob(["src/main/java/**/*.java"]),
-        extensions = [":my-extension-runtime"],
-        deployment_extensions = [":my-extension-deployment"],
+        extensions = ["@maven//:io_quarkus_quarkus_arc"],
+        deployment_extensions = ["@maven//:io_quarkus_arc_arc_processor"],
     )
 """
 
 # Re-export all Quarkus rules
 load(
-    "//bazel/rules:quarkus_application.bzl",
+    "//v1-custom/rules:quarkus_application.bzl",
     _quarkus_application = "quarkus_application",
     _quarkus_native_image = "quarkus_native_image",
     _quarkus_test = "quarkus_test",
 )
 load(
-    "//bazel/rules:quarkus_extension.bzl",
+    "//v1-custom/rules:quarkus_extension.bzl",
     _quarkus_extension = "quarkus_extension",
     _quarkus_extension_deployment = "quarkus_extension_deployment",
     _quarkus_extension_runtime = "quarkus_extension_runtime",
 )
 load(
-    "//bazel/rules:jandex.bzl",
+    "//v1-custom/rules:jandex.bzl",
     _jandex_index = "jandex_index",
     _jandex_merge = "jandex_merge",
 )

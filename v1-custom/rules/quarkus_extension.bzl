@@ -7,7 +7,7 @@ Quarkus extensions follow a runtime/deployment split pattern:
 """
 
 load("@rules_java//java:defs.bzl", "java_library", "java_plugin")
-load("//bazel/rules:jandex.bzl", "jandex_index")
+load("//v1-custom/rules:jandex.bzl", "jandex_index")
 
 def _quarkus_extension_metadata_impl(ctx):
     """Generates quarkus-extension.properties metadata file."""
