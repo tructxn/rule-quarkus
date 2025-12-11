@@ -96,7 +96,8 @@ QuarkusBootstrap bootstrap = QuarkusBootstrap.builder()
     .setExistingModel(model)        // Use our pre-built model
     .setTargetDirectory(outputDir)
     .setMode(QuarkusBootstrap.Mode.PROD)
-    .setIsolateDeployment(true)     // Separate deployment classloader
+    .setIsolateDeployment(false)    // Use flat classpath (required for Bazel)
+    .setFlatClassPath(true)         // Avoid ClassCastException
     .build();
 
 try (CuratedApplication app = bootstrap.bootstrap()) {
@@ -108,14 +109,15 @@ try (CuratedApplication app = bootstrap.bootstrap()) {
 
 ### Step 3: Bazel Packages Output
 
-```python
+```
 # quarkus_bootstrap rule outputs directory structure:
 # outputDir/
 # ├── quarkus-app/
 # │   ├── app/
 # │   │   └── application.jar      # Your augmented code
 # │   ├── lib/
-# │   │   └── *.jar                 # Runtime dependencies
+# │   │   ├── boot/                # Bootstrap runner JAR
+# │   │   └── main/                # Runtime dependencies
 # │   ├── quarkus/
 # │   │   └── generated-bytecode.jar
 # │   └── quarkus-run.jar          # Main entry point
@@ -160,15 +162,34 @@ quarkus_application(
     name = "my-app",
     srcs = glob(["src/main/java/**/*.java"]),
     resources = glob(["src/main/resources/**/*"]),
+
+    # Regular dependencies (APIs)
     deps = [
+        "@maven//:io_quarkus_quarkus_core",
         "@maven//:jakarta_enterprise_jakarta_enterprise_cdi_api",
         "@maven//:jakarta_inject_jakarta_inject_api",
+        "@maven//:jakarta_ws_rs_jakarta_ws_rs_api",
     ],
-    extensions = [
+
+    # Quarkus runtime extensions
+    runtime_extensions = [
         "@maven//:io_quarkus_quarkus_arc",
-        "@maven//:io_quarkus_quarkus_resteasy_reactive",
+        "@maven//:io_quarkus_quarkus_rest",
+        "@maven//:io_quarkus_quarkus_vertx_http",
     ],
-    main_class = "io.quarkus.runner.GeneratedMain",  # Auto-generated
+
+    # Quarkus deployment modules (for augmentation)
+    deployment_extensions = [
+        "@maven//:io_quarkus_quarkus_arc_deployment",
+        "@maven//:io_quarkus_quarkus_rest_deployment",
+        "@maven//:io_quarkus_quarkus_vertx_http_deployment",
+    ],
+
+    # JVM flags for running
+    jvm_flags = [
+        "-Xmx512m",
+        "-Djava.util.logging.manager=org.jboss.logmanager.LogManager",
+    ],
 )
 ```
 
@@ -176,10 +197,17 @@ quarkus_application(
 
 ```bash
 # Build
-bazel build //examples/hello-world:hello-world
+bazel build //v2-bootstrap/examples/hello-world:hello-world
 
-# Run
-bazel run //examples/hello-world:hello-world
+# Run directly
+bazel-bin/v2-bootstrap/examples/hello-world/hello-world
+
+# Test HTTP endpoints (in another terminal)
+curl http://localhost:8080/hello
+# Output: Hello from Quarkus (built with Bazel)!
+
+curl http://localhost:8080/hello/World
+# Output: Hello, World!
 ```
 
 ## Required Dependencies
@@ -193,6 +221,7 @@ maven.install(
         # Bootstrap (required for augmentation tool)
         "io.quarkus:quarkus-bootstrap-core:%s" % QUARKUS_VERSION,
         "io.quarkus:quarkus-bootstrap-app-model:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-bootstrap-runner:%s" % QUARKUS_VERSION,
         "io.quarkus:quarkus-core:%s" % QUARKUS_VERSION,
 
         # Deployment modules (for augmentation)
@@ -201,7 +230,20 @@ maven.install(
 
         # Runtime modules (for application)
         "io.quarkus:quarkus-arc:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-rest:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-vertx-http:%s" % QUARKUS_VERSION,
     ],
+)
+
+# Handle circular dependencies with exclusions
+maven.artifact(
+    artifact = "quarkus-rest-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
 )
 ```
 
