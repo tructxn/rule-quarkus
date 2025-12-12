@@ -19,7 +19,7 @@ bazel_dep(name = "rules_jvm_external", version = "6.5")
 # Maven dependencies for Quarkus
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 
-QUARKUS_VERSION = "3.17.4"
+QUARKUS_VERSION = "3.20.1"
 
 maven.install(
     name = "maven",
@@ -54,7 +54,47 @@ maven.install(
         # Quarkus REST (formerly RESTEasy Reactive)
         # ===========================================
         "io.quarkus:quarkus-rest:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-rest-jackson:%s" % QUARKUS_VERSION,
         "io.quarkus:quarkus-vertx-http:%s" % QUARKUS_VERSION,
+
+        # ===========================================
+        # Quarkus Mutiny (Reactive)
+        # ===========================================
+        "io.quarkus:quarkus-mutiny:%s" % QUARKUS_VERSION,
+
+        # ===========================================
+        # Tier 2: Reactive Database Clients
+        # ===========================================
+        "io.quarkus:quarkus-reactive-oracle-client:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-reactive-mysql-client:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-redis-client:%s" % QUARKUS_VERSION,
+
+        # ===========================================
+        # Tier 3: Messaging
+        # ===========================================
+        "io.quarkus:quarkus-messaging-rabbitmq:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-messaging-kafka:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-grpc:%s" % QUARKUS_VERSION,
+
+        # ===========================================
+        # Tier 4: Observability
+        # ===========================================
+        "io.quarkus:quarkus-micrometer-registry-prometheus:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-smallrye-health:%s" % QUARKUS_VERSION,
+
+        # ===========================================
+        # Tier 5: Quarkiverse Extensions
+        # ===========================================
+        # Unleash (feature flags)
+        "io.quarkiverse.unleash:quarkus-unleash:1.10.0",
+
+        # LangChain4j (AI/LLM)
+        "io.quarkiverse.langchain4j:quarkus-langchain4j-core:0.26.1",
+        "io.quarkiverse.langchain4j:quarkus-langchain4j-openai:0.26.1",
+        "io.quarkiverse.langchain4j:quarkus-langchain4j-ollama:0.26.1",
+
+        # Tika (content analysis)
+        "io.quarkiverse.tika:quarkus-tika:2.1.0",
 
         # ===========================================
         # Gizmo for bytecode generation
@@ -120,10 +160,204 @@ maven.artifact(
         "org.apache.maven:maven-plugin-api",
         "org.apache.maven:maven-xml-impl",
         "org.codehaus.plexus:plexus-xml",
-        # Don't exclude quarkus-devtools-common as it contains required classes
     ],
     group = "io.quarkus",
     version = QUARKUS_VERSION,
+)
+
+# ===========================================
+# Tier 1: REST Jackson + Mutiny deployment
+# ===========================================
+maven.artifact(
+    artifact = "quarkus-rest-jackson-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+
+maven.artifact(
+    artifact = "quarkus-mutiny-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+
+# ===========================================
+# Tier 2: Reactive DB Clients deployment
+# ===========================================
+maven.artifact(
+    artifact = "quarkus-reactive-oracle-client-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+
+maven.artifact(
+    artifact = "quarkus-reactive-mysql-client-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+
+maven.artifact(
+    artifact = "quarkus-redis-client-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+
+# ===========================================
+# Tier 3: Messaging deployment
+# ===========================================
+maven.artifact(
+    artifact = "quarkus-messaging-rabbitmq-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+
+maven.artifact(
+    artifact = "quarkus-messaging-kafka-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+
+maven.artifact(
+    artifact = "quarkus-grpc-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+
+# ===========================================
+# Tier 4: Observability deployment
+# ===========================================
+maven.artifact(
+    artifact = "quarkus-micrometer-registry-prometheus-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+
+maven.artifact(
+    artifact = "quarkus-smallrye-health-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkus",
+    version = QUARKUS_VERSION,
+)
+
+# ===========================================
+# Tier 5: Quarkiverse deployment
+# ===========================================
+maven.artifact(
+    artifact = "quarkus-unleash-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkiverse.unleash",
+    version = "1.10.0",
+)
+
+maven.artifact(
+    artifact = "quarkus-langchain4j-core-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkiverse.langchain4j",
+    version = "0.26.1",
+)
+
+maven.artifact(
+    artifact = "quarkus-langchain4j-openai-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkiverse.langchain4j",
+    version = "0.26.1",
+)
+
+maven.artifact(
+    artifact = "quarkus-langchain4j-ollama-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkiverse.langchain4j",
+    version = "0.26.1",
+)
+
+maven.artifact(
+    artifact = "quarkus-tika-deployment",
+    exclusions = [
+        "org.eclipse.sisu:org.eclipse.sisu.plexus",
+        "org.apache.maven:maven-plugin-api",
+        "org.apache.maven:maven-xml-impl",
+        "org.codehaus.plexus:plexus-xml",
+    ],
+    group = "io.quarkiverse.tika",
+    version = "2.1.0",
 )
 
 use_repo(maven, "maven")

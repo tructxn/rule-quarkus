@@ -2,6 +2,56 @@
 
 This directory contains the implementation of Quarkus Bazel rules using the official **QuarkusBootstrap API** instead of custom augmentation logic.
 
+## Quick Start
+
+```bash
+# Build hello-world
+bazel build //v2-bootstrap/examples/hello-world:hello-world
+bazel-bin/v2-bootstrap/examples/hello-world/hello-world
+curl http://localhost:8080/hello
+
+# Build demo-extensions (full featured)
+bazel build //v2-bootstrap/examples/demo-extensions:demo-extensions
+bazel-bin/v2-bootstrap/examples/demo-extensions/demo-extensions
+curl http://localhost:8080/api/users
+curl http://localhost:8080/q/health
+```
+
+## Version Info
+
+| Component | Version |
+|-----------|---------|
+| Quarkus | 3.20.1 |
+| Bazel | 7.x+ |
+| Java | 21 |
+
+## Supported Extensions (5 Tiers)
+
+### Tier 1: Core (Must have)
+- `quarkus-arc` - CDI implementation
+- `quarkus-vertx-http` - HTTP server
+- `quarkus-mutiny` - Reactive programming
+- `quarkus-rest-jackson` - REST + JSON
+
+### Tier 2: Database (Reactive)
+- `quarkus-reactive-oracle-client`
+- `quarkus-reactive-mysql-client`
+- `quarkus-redis-client`
+
+### Tier 3: Messaging
+- `quarkus-messaging-kafka`
+- `quarkus-messaging-rabbitmq`
+- `quarkus-grpc`
+
+### Tier 4: Observability
+- `quarkus-micrometer-registry-prometheus` - Metrics
+- `quarkus-smallrye-health` - Health checks
+
+### Tier 5: Quarkiverse
+- `quarkus-unleash` (1.10.0) - Feature flags
+- `quarkus-langchain4j-core/openai/ollama` (0.26.1) - AI/LLM
+- `quarkus-tika` (2.1.0) - Content analysis
+
 ## Why This Approach?
 
 ### Problems with Approach 1 (Custom Augmentation)
@@ -53,7 +103,7 @@ This directory contains the implementation of Quarkus Bazel rules using the offi
 
 ```
 tools/src/main/java/io/quarkus/bazel/bootstrap/
-├── BootstrapAugmentor.java      # Main entry point (~50 lines)
+├── BootstrapAugmentor.java      # Main entry point
 ├── AugmentationConfig.java      # Configuration object
 ├── ConfigParser.java            # Parse CLI arguments
 ├── ApplicationModelFactory.java # Build ApplicationModel from Bazel deps
@@ -71,86 +121,6 @@ rules/
 └── defs.bzl                     # Public API exports
 ```
 
-## How It Works
-
-### Step 1: Build ApplicationModel
-
-```java
-// Detect which JARs are Quarkus extensions
-List<ExtensionInfo> extensions = ExtensionDetector.detect(runtimeJars);
-
-// Build ApplicationModel with proper flags
-ApplicationModel model = ApplicationModelFactory.builder()
-    .setAppArtifact(applicationJars)
-    .addRuntimeDependencies(runtimeJars, DependencyFlags.RUNTIME_CP)
-    .addDeploymentDependencies(deploymentJars, DependencyFlags.DEPLOYMENT_CP)
-    .markExtensions(extensions)
-    .build();
-```
-
-### Step 2: Run QuarkusBootstrap
-
-```java
-QuarkusBootstrap bootstrap = QuarkusBootstrap.builder()
-    .setApplicationRoot(appJars)
-    .setExistingModel(model)        // Use our pre-built model
-    .setTargetDirectory(outputDir)
-    .setMode(QuarkusBootstrap.Mode.PROD)
-    .setIsolateDeployment(false)    // Use flat classpath (required for Bazel)
-    .setFlatClassPath(true)         // Avoid ClassCastException
-    .build();
-
-try (CuratedApplication app = bootstrap.bootstrap()) {
-    AugmentAction action = app.createAugmentor();
-    AugmentResult result = action.createProductionApplication();
-    // Output is in outputDir/quarkus-app/
-}
-```
-
-### Step 3: Bazel Packages Output
-
-```
-# quarkus_bootstrap rule outputs directory structure:
-# outputDir/
-# ├── quarkus-app/
-# │   ├── app/
-# │   │   └── application.jar      # Your augmented code
-# │   ├── lib/
-# │   │   ├── boot/                # Bootstrap runner JAR
-# │   │   └── main/                # Runtime dependencies
-# │   ├── quarkus/
-# │   │   └── generated-bytecode.jar
-# │   └── quarkus-run.jar          # Main entry point
-```
-
-## Extension Detection
-
-Quarkus extensions are identified by `META-INF/quarkus-extension.properties`:
-
-```java
-public static boolean isQuarkusExtension(Path jarPath) {
-    try (JarFile jar = new JarFile(jarPath.toFile())) {
-        return jar.getEntry("META-INF/quarkus-extension.properties") != null;
-    }
-}
-```
-
-## Runtime ↔ Deployment Mapping
-
-Convention: `quarkus-{name}` → `quarkus-{name}-deployment`
-
-```java
-public static Path findDeploymentArtifact(Path runtimeJar, List<Path> deploymentJars) {
-    String runtimeName = extractArtifactId(runtimeJar);  // e.g., "quarkus-arc"
-    String deploymentName = runtimeName + "-deployment"; // e.g., "quarkus-arc-deployment"
-
-    return deploymentJars.stream()
-        .filter(jar -> extractArtifactId(jar).equals(deploymentName))
-        .findFirst()
-        .orElse(null);
-}
-```
-
 ## Usage
 
 ### BUILD.bazel
@@ -163,7 +133,7 @@ quarkus_application(
     srcs = glob(["src/main/java/**/*.java"]),
     resources = glob(["src/main/resources/**/*"]),
 
-    # Regular dependencies (APIs)
+    # Compile-time dependencies (APIs)
     deps = [
         "@maven//:io_quarkus_quarkus_core",
         "@maven//:jakarta_enterprise_jakarta_enterprise_cdi_api",
@@ -175,14 +145,18 @@ quarkus_application(
     runtime_extensions = [
         "@maven//:io_quarkus_quarkus_arc",
         "@maven//:io_quarkus_quarkus_rest",
+        "@maven//:io_quarkus_quarkus_rest_jackson",
         "@maven//:io_quarkus_quarkus_vertx_http",
+        "@maven//:io_quarkus_quarkus_smallrye_health",
     ],
 
     # Quarkus deployment modules (for augmentation)
     deployment_extensions = [
         "@maven//:io_quarkus_quarkus_arc_deployment",
         "@maven//:io_quarkus_quarkus_rest_deployment",
+        "@maven//:io_quarkus_quarkus_rest_jackson_deployment",
         "@maven//:io_quarkus_quarkus_vertx_http_deployment",
+        "@maven//:io_quarkus_quarkus_smallrye_health_deployment",
     ],
 
     # JVM flags for running
@@ -205,16 +179,36 @@ bazel-bin/v2-bootstrap/examples/hello-world/hello-world
 # Test HTTP endpoints (in another terminal)
 curl http://localhost:8080/hello
 # Output: Hello from Quarkus (built with Bazel)!
-
-curl http://localhost:8080/hello/World
-# Output: Hello, World!
 ```
+
+## Examples
+
+### hello-world
+
+Basic REST application with CDI.
+
+**Endpoints:**
+- `GET /hello` - Returns greeting
+- `GET /hello/{name}` - Returns personalized greeting
+
+### demo-extensions
+
+Full-featured demo showcasing all extension tiers.
+
+**Endpoints:**
+- `GET /` - List all available endpoints
+- `GET /api/users` - Tier 1: REST + Jackson + Mutiny
+- `GET /api/db/mysql/status` - Tier 2: Database client info
+- `GET /api/messaging/kafka/status` - Tier 3: Messaging info
+- `GET /q/health` - Tier 4: Health checks
+- `GET /q/metrics` - Tier 4: Prometheus metrics
+- `GET /api/ai/status` - Tier 5: LangChain4j info
 
 ## Required Dependencies
 
 ```python
 # MODULE.bazel
-QUARKUS_VERSION = "3.17.4"
+QUARKUS_VERSION = "3.20.1"
 
 maven.install(
     artifacts = [
@@ -231,6 +225,7 @@ maven.install(
         # Runtime modules (for application)
         "io.quarkus:quarkus-arc:%s" % QUARKUS_VERSION,
         "io.quarkus:quarkus-rest:%s" % QUARKUS_VERSION,
+        "io.quarkus:quarkus-rest-jackson:%s" % QUARKUS_VERSION,
         "io.quarkus:quarkus-vertx-http:%s" % QUARKUS_VERSION,
     ],
 )
@@ -260,14 +255,17 @@ maven.artifact(
 ## Implementation Status
 
 - [x] Core tools implementation
-- [x] ApplicationModel building (with proper flag merging for overlapping deps)
+- [x] ApplicationModel building (with proper flag merging)
 - [x] Extension detection (via META-INF/quarkus-extension.properties)
 - [x] Bazel rules (quarkus_application macro)
 - [x] Example application (hello-world with REST)
+- [x] Demo application (demo-extensions with all tiers)
 - [x] CDI working (full ArC support)
 - [x] REST endpoints working (quarkus-rest + vertx-http)
 - [x] HTTP server (Vert.x + Netty)
 - [x] Bootstrap runner (lib/boot/ with correct naming)
+- [x] Health checks & Metrics (Tier 4)
+- [x] Quarkiverse extensions (Tier 5)
 
 ## Troubleshooting
 
@@ -298,3 +296,15 @@ maven.artifact(
 ### Empty lib/boot/ directory
 
 The bootstrap runner JAR must be named correctly: `io.quarkus.quarkus-bootstrap-runner-VERSION.jar`
+
+### Messaging extensions not starting
+
+Kafka/RabbitMQ extensions try to connect to brokers on startup. Configure connection in application.properties or use without runtime_extensions for mock-only demo.
+
+## Future Improvements
+
+1. **Native image support** - GraalVM native compilation
+2. **Dev mode** - Hot reload during development
+3. **Proto/gRPC rules** - Compile .proto files
+4. **Testing support** - @QuarkusTest integration
+5. **Multi-module** - Shared libraries between apps

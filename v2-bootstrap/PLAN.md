@@ -1,15 +1,63 @@
 # Plan: QuarkusBootstrap Integration với Bazel
 
-## Status: ✅ COMPLETED
+## Status: ✅ COMPLETED + EXTENSIONS ADDED
 
-**Ngày hoàn thành**: 2025-12-11
+**Ngày hoàn thành cơ bản**: 2025-12-11
+**Ngày thêm extensions**: 2025-12-12
 
-v2-bootstrap đã hoạt động hoàn chỉnh với:
+### Phiên bản hiện tại
+- **Quarkus**: 3.20.1
+- **Bazel**: 7.x+
+- **Java**: 21
+
+### Tính năng đã hoàn thành
 - Full CDI/ArC support
-- REST endpoints (quarkus-rest)
+- REST endpoints (quarkus-rest + jackson)
 - HTTP server (Vert.x + Netty)
 - Dependency injection working
 - Same output as Maven build
+- **5 Tiers of Extensions** (see below)
+
+---
+
+## Extensions đã hỗ trợ (5 Tiers)
+
+### Tier 1: Core (Must have)
+| Extension | Artifact | Status |
+|-----------|----------|--------|
+| ArC (CDI) | `quarkus-arc` | ✅ |
+| Vert.x HTTP | `quarkus-vertx-http` | ✅ |
+| Mutiny | `quarkus-mutiny` | ✅ |
+| REST Jackson | `quarkus-rest-jackson` | ✅ |
+
+### Tier 2: Database (Reactive)
+| Extension | Artifact | Status |
+|-----------|----------|--------|
+| Oracle Reactive | `quarkus-reactive-oracle-client` | ✅ |
+| MySQL Reactive | `quarkus-reactive-mysql-client` | ✅ |
+| Redis | `quarkus-redis-client` | ✅ |
+
+### Tier 3: Messaging
+| Extension | Artifact | Status |
+|-----------|----------|--------|
+| Kafka | `quarkus-messaging-kafka` | ✅ |
+| RabbitMQ | `quarkus-messaging-rabbitmq` | ✅ |
+| gRPC | `quarkus-grpc` | ✅ |
+
+### Tier 4: Observability
+| Extension | Artifact | Status |
+|-----------|----------|--------|
+| Prometheus Metrics | `quarkus-micrometer-registry-prometheus` | ✅ |
+| SmallRye Health | `quarkus-smallrye-health` | ✅ |
+
+### Tier 5: Quarkiverse
+| Extension | Group | Version | Status |
+|-----------|-------|---------|--------|
+| Unleash | `io.quarkiverse.unleash` | 1.10.0 | ✅ |
+| LangChain4j Core | `io.quarkiverse.langchain4j` | 0.26.1 | ✅ |
+| LangChain4j OpenAI | `io.quarkiverse.langchain4j` | 0.26.1 | ✅ |
+| LangChain4j Ollama | `io.quarkiverse.langchain4j` | 0.26.1 | ✅ |
+| Tika | `io.quarkiverse.tika` | 2.1.0 | ✅ |
 
 ---
 
@@ -79,6 +127,35 @@ v2-bootstrap đã hoạt động hoàn chỉnh với:
 
 ---
 
+## Examples
+
+### hello-world
+Basic REST application với CDI.
+
+```bash
+bazel build //v2-bootstrap/examples/hello-world:hello-world
+bazel-bin/v2-bootstrap/examples/hello-world/hello-world
+
+curl http://localhost:8080/hello
+# Hello from Quarkus (built with Bazel)!
+```
+
+### demo-extensions
+Full demo của tất cả tiers (Tier 1 + 4 enabled by default).
+
+```bash
+bazel build //v2-bootstrap/examples/demo-extensions:demo-extensions
+bazel-bin/v2-bootstrap/examples/demo-extensions/demo-extensions
+
+# Test endpoints
+curl http://localhost:8080/              # All endpoints
+curl http://localhost:8080/api/users     # Tier 1: REST + Jackson
+curl http://localhost:8080/q/health      # Tier 4: Health checks
+curl http://localhost:8080/q/metrics     # Tier 4: Prometheus metrics
+```
+
+---
+
 ## Các vấn đề đã giải quyết
 
 ### Issue 1: ApplicationModel dependencies showing 0
@@ -122,12 +199,6 @@ for (Path jar : runtimeJars) {
 }
 ```
 
-**Kết quả**:
-```
-Runtime classpath deps: 43
-Extensions: 2 (quarkus-arc, quarkus-vertx-http)
-```
-
 ---
 
 ### Issue 2: ClassCastException với CuratedApplication
@@ -137,8 +208,6 @@ Extensions: 2 (quarkus-arc, quarkus-vertx-http)
 ClassCastException: Cannot cast io.quarkus.bootstrap.app.CuratedApplication
                     to io.quarkus.bootstrap.app.CuratedApplication
 ```
-
-**Nguyên nhân**: Deployment và runtime classloaders có conflict khi isolated.
 
 **Giải pháp** (`BootstrapAugmentor.java`):
 ```java
@@ -155,13 +224,6 @@ QuarkusBootstrap bootstrap = QuarkusBootstrap.builder()
 ---
 
 ### Issue 3: ClassNotFoundException cho ASM classes
-
-**Triệu chứng**:
-```
-ClassNotFoundException: io.quarkus.arc.impl.ParameterizedTypeImpl
-```
-
-**Nguyên nhân**: TCCL (Thread Context ClassLoader) không được set đúng cho ASM class loading.
 
 **Giải pháp** (`BootstrapAugmentor.java`):
 ```java
@@ -181,118 +243,16 @@ try (CuratedApplication curatedApp = bootstrap.bootstrap()) {
 }
 ```
 
-**Thêm deps vào tool** (`v2-bootstrap/tools/BUILD.bazel`):
-```python
-deps = [
-    "@maven//:io_quarkus_arc_arc",
-    "@maven//:io_quarkus_quarkus_core_deployment",
-    "@maven//:io_quarkus_quarkus_arc_deployment",
-    # ... existing deps
-]
-```
-
 ---
 
-### Issue 4: ConfigValidationException
+### Issue 4-7: Các vấn đề khác
 
-**Triệu chứng**:
-```
-ConfigValidationException: platform.quarkus.native.builder-image
-```
-
-**Giải pháp** (`application.properties`):
-```properties
-quarkus.native.builder-image=quay.io/quarkus/ubi-quarkus-mandrel-builder-image:jdk-21
-```
-
----
-
-### Issue 5: lib/boot/ empty
-
-**Triệu chứng**: Quarkus app không chạy được vì thiếu bootstrap runner.
-
-**Nguyên nhân**: Bootstrap runner JAR không được copy với đúng naming format.
-
-**Giải pháp** (`OutputHandler.java`):
-```java
-private static void ensureBootstrapRunner(AugmentationConfig config, Path targetDir) throws IOException {
-    Path bootDir = targetDir.resolve("lib/boot");
-    Files.createDirectories(bootDir);
-
-    // Find quarkus-bootstrap-runner JAR from deployment classpath
-    for (Path jar : config.getDeploymentJars()) {
-        String name = jar.getFileName().toString();
-        if (name.contains("quarkus-bootstrap-runner")) {
-            // Extract version from JAR name
-            String version = extractVersion(name);
-
-            // Quarkus expects: io.quarkus.quarkus-bootstrap-runner-VERSION.jar
-            String targetFileName = "io.quarkus.quarkus-bootstrap-runner-" + version + ".jar";
-            Path targetJar = bootDir.resolve(targetFileName);
-
-            Files.copy(jar, targetJar, StandardCopyOption.REPLACE_EXISTING);
-            System.out.println("Copied bootstrap runner: " + targetFileName);
-            return;
-        }
-    }
-}
-```
-
----
-
-### Issue 6: quarkus-run.jar empty Class-Path
-
-**Triệu chứng**: Running quarkus-run.jar trực tiếp không work.
-
-**Giải pháp** (`quarkus.bzl` - runner script):
-```bash
-#!/bin/bash
-set -e
-
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-QUARKUS_APP="$SCRIPT_DIR/{name}_augmented-quarkus-app"
-
-# Run with explicit classpath including lib/boot and lib/main
-exec java {jvm_flags} \
-    -cp "$QUARKUS_APP/lib/boot/*:$QUARKUS_APP/lib/main/*:$QUARKUS_APP/quarkus-run.jar" \
-    io.quarkus.bootstrap.runner.QuarkusEntryPoint "$@"
-```
-
----
-
-### Issue 7: Circular dependency với org.eclipse.sisu
-
-**Triệu chứng**:
-```
-Error: circular dependency: org.eclipse.sisu:org.eclipse.sisu.plexus
-```
-
-**Giải pháp** (`MODULE.bazel`):
-```python
-maven.artifact(
-    artifact = "quarkus-rest-deployment",
-    exclusions = [
-        "org.eclipse.sisu:org.eclipse.sisu.plexus",
-        "org.apache.maven:maven-plugin-api",
-        "org.apache.maven:maven-xml-impl",
-        "org.codehaus.plexus:plexus-xml",
-    ],
-    group = "io.quarkus",
-    version = QUARKUS_VERSION,
-)
-
-maven.artifact(
-    artifact = "quarkus-vertx-http-deployment",
-    exclusions = [
-        "org.eclipse.sisu:org.eclipse.sisu.plexus",
-        "org.apache.maven:maven-plugin-api",
-        "org.apache.maven:maven-xml-impl",
-        "org.codehaus.plexus:plexus-xml",
-    ],
-    group = "io.quarkus",
-    version = QUARKUS_VERSION,
-)
-```
+| Issue | Giải pháp |
+|-------|-----------|
+| ConfigValidationException | Add `quarkus.native.builder-image` to application.properties |
+| lib/boot/ empty | Copy bootstrap-runner với đúng naming format |
+| quarkus-run.jar empty Class-Path | Sử dụng runner script với explicit classpath |
+| Circular dependency với org.eclipse.sisu | Thêm exclusions vào maven.artifact() |
 
 ---
 
@@ -301,15 +261,14 @@ maven.artifact(
 ```
 quarkus-app/
 ├── app/
-│   └── hello-world.jar           # Application classes
+│   └── {app-name}.jar           # Application classes
 ├── lib/
 │   ├── boot/
-│   │   └── io.quarkus.quarkus-bootstrap-runner-3.17.4.jar
+│   │   └── io.quarkus.quarkus-bootstrap-runner-3.20.1.jar
 │   └── main/
-│       ├── io.quarkus.quarkus-core-3.17.4.jar
-│       ├── io.quarkus.quarkus-arc-3.17.4.jar
-│       ├── io.quarkus.quarkus-rest-3.17.4.jar
-│       ├── io.quarkus.quarkus-vertx-http-3.17.4.jar
+│       ├── io.quarkus.quarkus-core-3.20.1.jar
+│       ├── io.quarkus.quarkus-arc-3.20.1.jar
+│       ├── io.quarkus.quarkus-rest-3.20.1.jar
 │       └── ... (runtime dependencies)
 ├── quarkus/
 │   ├── generated-bytecode.jar    # CDI proxies, REST handlers
@@ -321,40 +280,18 @@ quarkus-app/
 
 ## Key Source Files
 
-| File | Purpose | Key Changes |
-|------|---------|-------------|
-| `tools/.../BootstrapAugmentor.java` | Main entry point | setIsolateDeployment(false), setFlatClassPath(true), TCCL setting |
-| `tools/.../ApplicationModelFactory.java` | Build ApplicationModel | Flag merging (RUNTIME_CP \| DEPLOYMENT_CP), extension detection |
-| `tools/.../ExtensionDetector.java` | Detect Quarkus extensions | META-INF/quarkus-extension.properties |
-| `tools/.../OutputHandler.java` | Handle output | Bootstrap runner copy with correct naming |
-| `tools/.../ConfigParser.java` | Parse CLI args | --app-jars, --runtime-jars, --deployment-jars, --output-dir |
-| `rules/quarkus.bzl` | Main macro | quarkus_application(), runner script generation |
-| `rules/quarkus_bootstrap.bzl` | Bootstrap rule | _quarkus_bootstrap_impl |
-
----
-
-## Extension Detection
-
-Quarkus extensions are identified by `META-INF/quarkus-extension.properties`:
-
-```java
-public static boolean isQuarkusExtension(Path jarPath) {
-    try (JarFile jar = new JarFile(jarPath.toFile())) {
-        return jar.getEntry("META-INF/quarkus-extension.properties") != null;
-    }
-}
-```
-
-Extensions found:
-- `quarkus-arc` → CDI implementation
-- `quarkus-rest` → REST endpoints
-- `quarkus-vertx-http` → HTTP server
+| File | Purpose |
+|------|---------|
+| `tools/.../BootstrapAugmentor.java` | Main entry point, QuarkusBootstrap configuration |
+| `tools/.../ApplicationModelFactory.java` | Build ApplicationModel with flag merging |
+| `tools/.../ExtensionDetector.java` | Detect Quarkus extensions via META-INF |
+| `tools/.../OutputHandler.java` | Handle output, copy bootstrap runner |
+| `rules/quarkus.bzl` | Main `quarkus_application` macro |
+| `rules/quarkus_bootstrap.bzl` | Bootstrap augmentation rule |
 
 ---
 
 ## DependencyFlags
-
-Quan trọng nhất cho ApplicationModel:
 
 | Flag | Value | Purpose |
 |------|-------|---------|
@@ -369,27 +306,25 @@ Quan trọng nhất cho ApplicationModel:
 ## Commands Reference
 
 ```bash
-# Build
+# Build examples
 bazel build //v2-bootstrap/examples/hello-world:hello-world
+bazel build //v2-bootstrap/examples/demo-extensions:demo-extensions
 
 # Run
 bazel-bin/v2-bootstrap/examples/hello-world/hello-world
+bazel-bin/v2-bootstrap/examples/demo-extensions/demo-extensions
 
 # Test HTTP
 curl http://localhost:8080/hello
-# Output: Hello from Quarkus (built with Bazel)!
-
-curl http://localhost:8080/hello/World
-# Output: Hello, World!
-
-# Debug build
-bazel build //v2-bootstrap/examples/hello-world:hello-world 2>&1 | tee build.log
+curl http://localhost:8080/api/users
+curl http://localhost:8080/q/health
+curl http://localhost:8080/q/metrics
 
 # Clean rebuild
-bazel clean --expunge && bazel build //v2-bootstrap/examples/hello-world:hello-world
+bazel clean --expunge && bazel build //...
 
 # Query deps
-bazel query "deps(//v2-bootstrap/examples/hello-world:hello-world)"
+bazel query "deps(//v2-bootstrap/examples/demo-extensions:demo-extensions)"
 ```
 
 ---
@@ -398,7 +333,7 @@ bazel query "deps(//v2-bootstrap/examples/hello-world:hello-world)"
 
 1. **Native image support** - GraalVM native compilation
 2. **Dev mode** - Hot reload during development
-3. **More extensions** - Hibernate, database, etc.
+3. **Proto/gRPC rules** - Compile .proto files
 4. **Testing support** - @QuarkusTest integration
 5. **Multi-module** - Shared libraries between apps
 
